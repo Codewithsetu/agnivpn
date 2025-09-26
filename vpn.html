@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VPN Simulator</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load React and Babel for JSX compilation -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Configure Tailwind for Inter font -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        inter: ['Inter', 'sans-serif'],
+                    },
+                },
+            },
+        }
+    </script>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        // Start of vpn_simulator.jsx content
+        // FIX: Removed 'import' which caused ReferenceError: require is not defined.
+        // Instead, we destructure hooks from the global 'React' object provided by the CDN.
+        const { useState, useEffect, useCallback } = React;
+
+        // Simple Lucide Icon Placeholders (Functional Components)
+        const Power = (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v10"/><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/></svg>;
+        const Settings = (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.44a2 2 0 0 1-.58 1.42l-.24.24a2 2 0 0 1-2.83 0l-.1-.1a2 2 0 0 0-2.83 0v.44a2 2 0 0 1-2 2h-.44a2 2 0 0 0-2 2v.44a2 2 0 0 1-1.42 1.58l-.24.24a2 2 0 0 1 0 2.83l.1.1a2 2 0 0 0 2.83 0v.44a2 2 0 0 1 2 2h.44a2 2 0 0 0 2 2h.44a2 2 0 0 1 1.42.58l.24.24a2 2 0 0 1 2.83 0l.1-.1a2 2 0 0 0 2.83 0v-.44a2 2 0 0 1 2-2h.44a2 2 0 0 0 2-2v-.44a2 2 0 0 1 1.42-1.58l.24-.24a2 2 0 0 1 0-2.83l-.1-.1a2 2 0 0 0-2.83 0v-.44a2 2 0 0 1-2-2h-.44a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>;
+        const Globe = (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20M2 12h20"/></svg>;
+        const Clock = (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>;
+        const Upload = (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>;
+        const Download = (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>;
+        const CheckCircle = (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>;
+        const WifiOff = (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="1" y1="1" x2="23" y2="23"/><path d="M16.72 10.68A8 8 0 0 0 12 2C9.46 2 7.02 2.87 5.09 4.41"/><path d="M12 16.99h.01"/><path d="M5.46 11.53A17.9 17.9 0 0 1 2 12c3.2 0 6.13-.88 8.84-2.33"/><path d="M15.41 4.77a17.9 17.9 0 0 1 3.49 1.15"/><path d="M19.98 12c-.39 0-.77.03-1.15.09"/></svg>;
+
+
+        // Define the available server locations
+        const serverLocations = [
+          { name: "New York, US", ip: "104.28.1.1", flag: "🇺🇸" },
+          { name: "London, UK", ip: "172.67.1.2", flag: "🇬🇧" },
+          { name: "Frankfurt, DE", ip: "192.0.2.3", flag: "🇩🇪" },
+          { name: "Tokyo, JP", ip: "203.0.113.4", flag: "🇯🇵" },
+          { name: "Sydney, AU", ip: "13.238.169.5", flag: "🇦🇺" },
+          { name: "Sao Paulo, BR", ip: "177.70.1.6", flag: "🇧🇷" },
+          { name: "Singapore, SG", ip: "52.77.1.7", flag: "🇸🇬" },
+          { name: "Paris, FR", ip: "92.204.1.8", flag: "🇫🇷" },
+          { name: "Mumbai, IN", ip: "203.110.1.9", flag: "🇮🇳" },
+        ];
+
+        // Helper function to format time in HH:MM:SS
+        const formatTime = (seconds) => {
+          const h = String(Math.floor(seconds / 3600)).padStart(2, '0');
+          const m = String(Math.floor((seconds % 3600) / 60)).padStart(2, '0');
+          const s = String(seconds % 60).padStart(2, '0');
+          return `${h}:${m}:${s}`;
+        };
+
+        // Main App Component
+        const App = () => {
+          const [isConnected, setIsConnected] = useState(false);
+          const [isLoading, setIsLoading] = useState(false);
+          const [connectionTime, setConnectionTime] = useState(0);
+          const [dataUp, setDataUp] = useState(0); // in MB
+          const [dataDown, setDataDown] = useState(0); // in MB
+          const [selectedLocation, setSelectedLocation] = useState(serverLocations[0]);
+
+          // Handle the Connect/Disconnect action
+          const toggleConnection = () => {
+            if (isLoading) return;
+
+            if (isConnected) {
+              // Disconnect Logic
+              setIsLoading(true);
+              setTimeout(() => {
+                setIsConnected(false);
+                setIsLoading(false);
+                setConnectionTime(0);
+                setDataUp(0);
+                setDataDown(0);
+                // Optionally show a disconnection message
+                console.log("VPN Disconnected.");
+              }, 1500); // Simulated disconnection delay
+            } else {
+              // Connect Logic
+              setIsLoading(true);
+              setConnectionTime(0);
+              setDataUp(0);
+              setDataDown(0);
+              setTimeout(() => {
+                setIsConnected(true);
+                setIsLoading(false);
+                // Optionally show a connection success message
+                console.log(`VPN Connected to ${selectedLocation.name}`);
+              }, 2000); // Simulated connection delay
+            }
+          };
+
+          // Timer and Data Flow Effect
+          useEffect(() => {
+            let timer, dataFlow;
+            if (isConnected && !isLoading) {
+              // Connection Timer
+              timer = setInterval(() => {
+                setConnectionTime(prev => prev + 1);
+              }, 1000);
+
+              // Simulated Data Transfer
+              dataFlow = setInterval(() => {
+                setDataUp(prev => prev + (Math.random() * 0.1).toFixed(2) * 1);
+                setDataDown(prev => prev + (Math.random() * 0.3).toFixed(2) * 1);
+              }, 3000);
+            }
+
+            return () => {
+              clearInterval(timer);
+              clearInterval(dataFlow);
+            };
+          }, [isConnected, isLoading]);
+
+          // Dynamic Button State Styles
+          const buttonStateClasses = isConnected
+            ? 'bg-green-600 hover:bg-green-700 shadow-green-700/50'
+            : 'bg-blue-600 hover:bg-blue-700 shadow-blue-700/50';
+
+          const loadingAnimationClass = isLoading
+            ? 'animate-spin'
+            : '';
+
+          // Function to render connection status text and icon
+          const renderStatus = () => {
+            if (isLoading) {
+              return (
+                <div className="flex flex-col items-center">
+                  <Power className={`w-10 h-10 text-white ${loadingAnimationClass}`} />
+                  <span className="mt-2 text-xl font-semibold">
+                    {isConnected ? 'Disconnecting...' : 'Connecting...'}
+                  </span>
+                </div>
+              );
+            }
+            if (isConnected) {
+              return (
+                <div className="flex flex-col items-center">
+                  <CheckCircle className="w-10 h-10 text-white" />
+                  <span className="mt-2 text-xl font-semibold">SECURED</span>
+                </div>
+              );
+            }
+            return (
+              <div className="flex flex-col items-center">
+                <Power className="w-10 h-10 text-white" />
+                <span className="mt-2 text-xl font-semibold">CONNECT</span>
+              </div>
+            );
+          };
+
+          const LocationSelector = ({ location, setLocation }) => (
+            <div className="relative w-full text-center">
+              <div className="flex items-center justify-center p-3 text-sm font-medium text-gray-300 transition duration-300 bg-gray-700 rounded-xl hover:bg-gray-600 cursor-pointer w-full max-w-xs mx-auto">
+                <Globe className="w-4 h-4 mr-2" />
+                {location.flag} {location.name}
+              </div>
+              <select
+                className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-xs h-full opacity-0 cursor-pointer bg-gray-900 text-white"
+                value={location.name}
+                onChange={(e) => {
+                  const newLocation = serverLocations.find(loc => loc.name === e.target.value);
+                  if (newLocation) setSelectedLocation(newLocation);
+                }}
+                disabled={isConnected || isLoading}
+              >
+                {serverLocations.map(loc => (
+                  <option key={loc.name} value={loc.name} className="bg-gray-900 text-white">
+                    {loc.flag} {loc.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          );
+
+          const InfoCard = ({ icon, label, value, colorClass = "text-gray-300" }) => (
+            <div className="flex flex-col items-center p-4 bg-gray-800 rounded-xl shadow-lg transition duration-300 hover:bg-gray-700 border border-gray-700">
+              <div className={`mb-2 ${colorClass}`}>{icon}</div>
+              <div className="text-xs font-light text-gray-400 uppercase">{label}</div>
+              <div className="text-lg font-bold text-white">{value}</div>
+            </div>
+          );
+
+          return (
+            <div className="min-h-screen bg-gray-900 text-white font-inter flex items-center justify-center p-4">
+              <div className="w-full max-w-md bg-gray-800 rounded-3xl p-6 sm:p-8 shadow-2xl transition duration-500 ease-in-out">
+                
+                {/* Header */}
+                <header className="flex items-center justify-between mb-8">
+                  <h1 className="text-2xl font-extrabold tracking-tight text-white">Gemini VPN (Simulated)</h1>
+                  <button className="p-2 text-gray-400 transition duration-300 rounded-full hover:text-white hover:bg-gray-700">
+                    <Settings className="w-6 h-6" />
+                  </button>
+                </header>
+
+                {/* Connection Status and Button */}
+                <div className="flex flex-col items-center justify-center my-10">
+                  <div className={`relative w-48 h-48 rounded-full flex items-center justify-center transition-all duration-500 ${isConnected ? 'bg-green-900/40 border-4 border-green-500' : 'bg-blue-900/40 border-4 border-blue-500'}`}>
+                    {/* Pulsating Glow Effect (Only when connected or connecting) */}
+                    {(isConnected || isLoading) && (
+                      <div className={`absolute w-full h-full rounded-full ${isConnected ? 'bg-green-500 opacity-20 animate-ping-slow' : 'bg-blue-500 opacity-20 animate-pulse'} transition-opacity duration-500`} style={{ animationDuration: '4s' }}></div>
+                    )}
+                    
+                    {/* The Main Power Button */}
+                    <button
+                      onClick={toggleConnection}
+                      disabled={isLoading}
+                      className={`relative z-10 w-36 h-36 rounded-full flex flex-col items-center justify-center text-white text-3xl font-bold transition-all duration-300 ease-in-out transform hover:scale-105 shadow-xl ${buttonStateClasses} focus:outline-none focus:ring-4 ${isConnected ? 'focus:ring-green-500/50' : 'focus:ring-blue-500/50'}`}
+                    >
+                      {renderStatus()}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Location Selector */}
+                <div className="mb-8">
+                  <LocationSelector location={selectedLocation} setLocation={setSelectedLocation} />
+                </div>
+
+                {/* Status Details */}
+                <div className="grid grid-cols-2 gap-4 text-center">
+                  <InfoCard
+                    icon={<Globe className="w-6 h-6" />}
+                    label="Server IP"
+                    value={isConnected ? selectedLocation.ip : '—'}
+                    colorClass={isConnected ? 'text-green-400' : 'text-gray-400'}
+                  />
+                  <InfoCard
+                    icon={<Clock className="w-6 h-6" />}
+                    label="Time"
+                    value={isConnected ? formatTime(connectionTime) : '—'}
+                    colorClass={isConnected ? 'text-green-400' : 'text-gray-400'}
+                  />
+                  <InfoCard
+                    icon={<Download className="w-6 h-6" />}
+                    label="Data Down"
+                    value={isConnected ? `${dataDown.toFixed(2)} MB` : '—'}
+                    colorClass={isConnected ? 'text-blue-400' : 'text-gray-400'}
+                  />
+                  <InfoCard
+                    icon={<Upload className="w-6 h-6" />}
+                    label="Data Up"
+                    value={isConnected ? `${dataUp.toFixed(2)} MB` : '—'}
+                    colorClass={isConnected ? 'text-blue-400' : 'text-gray-400'}
+                  />
+                </div>
+
+                {/* Disclaimer */}
+                <div className="mt-8 text-center text-xs text-gray-500">
+                  <WifiOff className="w-4 h-4 inline mr-1 text-red-500" />
+                  <span className='font-semibold'>Disclaimer:</span> This is a visual simulation of a VPN application and does not provide actual network encryption or IP address masking.
+                </div>
+
+              </div>
+            </div>
+          );
+        };
+
+        // Custom animation defined via style block for Tailwind JIT compilation
+        const style = document.createElement('style');
+        style.innerHTML = `
+        @keyframes ping-slow {
+          0% {
+            transform: scale(0.9);
+            opacity: 0.7;
+          }
+          50% {
+            transform: scale(1.1);
+            opacity: 0.2;
+          }
+          100% {
+            transform: scale(0.9);
+            opacity: 0.7;
+          }
+        }
+        .animate-ping-slow {
+          animation: ping-slow 4s cubic-bezier(0, 0, 0.2, 1) infinite;
+        }
+        `;
+        document.head.appendChild(style);
+
+
+        // Render the component
+        const domContainer = document.querySelector('#root');
+        const root = ReactDOM.createRoot(domContainer);
+        root.render(<App />);
+        // End of vpn_simulator.jsx content
+    </script>
+</body>
+</html>
